@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -1685,3 +1686,20 @@ func requireContains(tb testing.TB, s, subtr string) {
 }
 
 func viewModel(m Model) string { return ansi.Strip(m.View()) }
+
+func TestFormInitRequestsBackgroundColor(t *testing.T) {
+	f := NewForm(NewGroup(NewInput().Title("Name")))
+
+	cmds := reflect.ValueOf(f.Init()())
+	if cmds.Kind() != reflect.Slice {
+		t.Fatalf("expected Init to return a sequence, got %T", cmds.Interface())
+	}
+	want := reflect.ValueOf(tea.RequestBackgroundColor).Pointer()
+	for i := range cmds.Len() {
+		cmd, ok := cmds.Index(i).Interface().(tea.Cmd)
+		if ok && cmd != nil && reflect.ValueOf(cmd).Pointer() == want {
+			return
+		}
+	}
+	t.Fatal("expected Init to request the terminal background color")
+}
